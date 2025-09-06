@@ -114,7 +114,7 @@ public class AuthController {
    @GetMapping("/user")
     public ResponseEntity<UserResponseDTO> getUserInformation(@RequestParam("id") Long userId){
         UserResponseDTO response = new UserResponseDTO("Juliana Vélez Betancourt", "juliana@gmail.com",
-                "123456789", "Contador público");
+                "123456789", "Contador público", "Nombre de su primera mascota?", "Nicky");
 
         return ResponseEntity.ok(response);
    }
@@ -150,7 +150,40 @@ public class AuthController {
         return ResponseEntity.ok(response);
    }
 
-
-
+    @Operation(
+            summary = "Obtener pregunta de seguridad",
+            description = "Obtiene la pregunta de seguridad de un usuario para recuperación de contraseña"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Pregunta de seguridad obtenida exitosamente",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GenericResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "ID de usuario inválido",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Usuario no encontrado",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Error interno del servidor",
+                    content = @Content
+            )
+    })
+    @GetMapping("/user/question")
+    public ResponseEntity<GenericResponseDTO> getSecurityQuestion(@RequestParam("id") Long userId) {
+        GenericResponseDTO response = new GenericResponseDTO("¿Cuál es el nombre de tu mascota favorita?");
+        
+        return ResponseEntity.ok(response);
+    }
 
 }

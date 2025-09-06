@@ -24,4 +24,10 @@ public class UserResponseDTO {
 
     @Schema(description = "Profession", example = "Bióloga", required = true)
     private String profession;
+
+    @Schema(description = "question", example = "Nombre de su primera mascota?", required = true)
+    private String question;
+
+    @Schema(description = "answer", example = "Nicky", required = true)
+    private String answer;
 }
