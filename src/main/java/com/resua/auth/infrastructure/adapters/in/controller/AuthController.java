@@ -1,9 +1,9 @@
-package com.resua.auth.infrastructure.input.controller;
+package com.resua.auth.infrastructure.adapters.in.controller;
 
-import com.resua.auth.infrastructure.input.request.AuthRequestDTO;
-import com.resua.auth.infrastructure.input.request.LoginRequestDTO;
-import com.resua.auth.infrastructure.input.response.GenericResponseDTO;
-import com.resua.auth.infrastructure.input.response.UserResponseDTO;
+import com.resua.auth.infrastructure.adapters.in.request.AuthRequestDTO;
+import com.resua.auth.infrastructure.adapters.in.request.LoginRequestDTO;
+import com.resua.auth.infrastructure.adapters.in.response.GenericResponseDTO;
+import com.resua.auth.infrastructure.adapters.in.response.UserResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

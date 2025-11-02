@@ -1,4 +1,4 @@
-package com.resua.auth.infrastructure.input.response;
+package com.resua.auth.infrastructure.adapters.in.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
