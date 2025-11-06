@@ -1,16 +1,19 @@
 package com.resua.auth.infrastructure.adapters.in.controller;
 
+import com.resua.auth.domain.models.User;
 import com.resua.auth.infrastructure.adapters.in.request.AuthRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.LoginRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.RegistrationRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.response.GenericResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.UserResponseDTO;
+import com.resua.auth.infrastructure.ports.in.CreateUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -22,9 +25,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping
 @Tag(name = "Autenticación", description = "API para gestión de autenticación de usuarios")
 public class AuthController {
+
+    private final CreateUser createUser;
 
     @Operation(
             summary = "Registrar nuevo usuario",
@@ -51,10 +57,9 @@ public class AuthController {
             )
     })
     @PostMapping("/user")
-    public ResponseEntity<GenericResponseDTO> add(@RequestBody RegistrationRequestDTO user){
-        GenericResponseDTO response = new GenericResponseDTO();
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<User> add(@RequestBody RegistrationRequestDTO userDTO){
+        User createdUser = createUser.createUser(userDTO);
+        return ResponseEntity.ok(createdUser);
     }
 
     @Operation(
