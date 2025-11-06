@@ -18,7 +18,7 @@ public class User {
     private String name;
     private String lastName;
     private String email;
-    private String occupation;
+    private String profession;
     private LocalDate birthDate;
     private String password;
     private String securityQuestion;
