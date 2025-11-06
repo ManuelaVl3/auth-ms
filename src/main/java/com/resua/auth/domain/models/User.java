@@ -22,5 +22,5 @@ public class User {
     private LocalDate birthDate;
     private String password;
     private String securityQuestion;
-    private String securityAnswer;
+    private String secretAnswer;
 }
