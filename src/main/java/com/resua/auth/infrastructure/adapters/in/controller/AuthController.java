@@ -2,6 +2,7 @@ package com.resua.auth.infrastructure.adapters.in.controller;
 
 import com.resua.auth.infrastructure.adapters.in.request.AuthRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.LoginRequestDTO;
+import com.resua.auth.infrastructure.adapters.in.request.RegistrationRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.response.GenericResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.UserResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,7 +51,7 @@ public class AuthController {
             )
     })
     @PostMapping("/user")
-    public ResponseEntity<GenericResponseDTO> add(@RequestBody AuthRequestDTO user){
+    public ResponseEntity<GenericResponseDTO> add(@RequestBody RegistrationRequestDTO user){
         GenericResponseDTO response = new GenericResponseDTO();
 
         return ResponseEntity.ok(response);
