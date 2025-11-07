@@ -4,9 +4,14 @@ import com.resua.auth.domain.models.User;
 import com.resua.auth.infrastructure.adapters.in.request.AuthRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.LoginRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.RegistrationRequestDTO;
+import com.resua.auth.infrastructure.adapters.in.request.UpdateUserRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.response.GenericResponseDTO;
+import com.resua.auth.infrastructure.adapters.in.response.LoginResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.UserResponseDTO;
 import com.resua.auth.infrastructure.ports.in.CreateUser;
+import com.resua.auth.infrastructure.ports.in.GetUserById;
+import com.resua.auth.infrastructure.ports.in.LoginUser;
+import com.resua.auth.infrastructure.ports.in.UpdateUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -31,6 +36,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final CreateUser createUser;
+    private final LoginUser loginUser;
+    private final GetUserById getUserById;
+    private final UpdateUser updateUser;
 
     @Operation(
             summary = "Registrar nuevo usuario",
@@ -64,7 +72,7 @@ public class AuthController {
 
     @Operation(
             summary = "Autenticación de usuario",
-            description = "Auntentica a un usuario en el sistema con la información proporcionada"
+            description = "Autentica a un usuario en el sistema con email y contraseña"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -72,7 +80,15 @@ public class AuthController {
                     description = "Usuario autenticado exitosamente",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = GenericResponseDTO.class)
+                            schema = @Schema(implementation = LoginResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Credenciales inválidas",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = LoginResponseDTO.class)
                     )
             ),
             @ApiResponse(
@@ -87,15 +103,32 @@ public class AuthController {
             )
     })
    @PostMapping("/login")
-    public ResponseEntity<GenericResponseDTO> login(@RequestBody LoginRequestDTO user){
-        GenericResponseDTO response = new GenericResponseDTO("El usuario está autenticado correctamente");
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginRequest){
+        return loginUser.login(loginRequest)
+                .map(user -> {
+                    LoginResponseDTO response = new LoginResponseDTO(
+                            "Login exitoso",
+                            user.getId(),
+                            user.getName() + " " + user.getLastName(),
+                            user.getEmail(),
+                            true
+                    );
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.status(401).body(
+                        new LoginResponseDTO(
+                                "Credenciales inválidas",
+                                null,
+                                null,
+                                null,
+                                false
+                        )
+                ));
    }
 
     @Operation(
             summary = "Obtener información de un usuario",
-            description = "Obtiene la información de un usuario en el sistema"
+            description = "Obtiene la información de un usuario en el sistema por su ID"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -103,12 +136,17 @@ public class AuthController {
                     description = "Información de usuario obtenida exitosamente",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = GenericResponseDTO.class)
+                            schema = @Schema(implementation = UserResponseDTO.class)
                     )
             ),
             @ApiResponse(
+                    responseCode = "404",
+                    description = "Usuario no encontrado",
+                    content = @Content
+            ),
+            @ApiResponse(
                     responseCode = "400",
-                    description = "Datos de entrada inválidos",
+                    description = "ID de usuario inválido",
                     content = @Content
             ),
             @ApiResponse(
@@ -119,24 +157,37 @@ public class AuthController {
     })
    @GetMapping("/user")
     public ResponseEntity<UserResponseDTO> getUserInformation(@RequestParam("id") Long userId){
-        UserResponseDTO response = new UserResponseDTO("Juliana Vélez Betancourt", "juliana@gmail.com",
-                "123456789", "Contador público", "Nombre de su primera mascota?", "Nicky");
-
-        return ResponseEntity.ok(response);
+        return getUserById.getUserById(userId)
+                .map(user -> {
+                    UserResponseDTO response = new UserResponseDTO(
+                            user.getName(),
+                            user.getLastName(),
+                            user.getEmail(),
+                            user.getSecurityQuestion(),
+                            user.getSecretAnswer()
+                    );
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.notFound().build());
    }
 
     @Operation(
             summary = "Editar información de un usuario",
-            description = "Edita la información de un usuario en el sistema"
+            description = "Actualiza la información de un usuario en el sistema. Solo se actualizan los campos proporcionados."
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Información de usuario editada exitosamente",
+                    description = "Información de usuario actualizada exitosamente",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = GenericResponseDTO.class)
+                            schema = @Schema(implementation = UserResponseDTO.class)
                     )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Usuario no encontrado",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -150,10 +201,19 @@ public class AuthController {
             )
     })
    @PatchMapping("/user/{id}")
-    public ResponseEntity<GenericResponseDTO> update(@PathVariable("id") Long id, @RequestBody AuthRequestDTO user){
-        GenericResponseDTO response = new GenericResponseDTO("El usuario con id: " + id + " se ha editado correctamente");
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<UserResponseDTO> update(@PathVariable("id") Long id, @RequestBody UpdateUserRequestDTO updateRequest){
+        return updateUser.updateUser(id, updateRequest)
+                .map(user -> {
+                    UserResponseDTO response = new UserResponseDTO(
+                            user.getName(),
+                            user.getLastName(),
+                            user.getEmail(),
+                            user.getSecurityQuestion(),
+                            user.getSecretAnswer()
+                    );
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.notFound().build());
    }
 
     @Operation(

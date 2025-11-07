@@ -19,9 +19,19 @@ public class UserAdapter {
         return userRepository.findUserByCredentials(email, password).map(userMapper::toModel);
     }
 
+    public Optional<User> getUserById(Long userId) {
+        return userRepository.findById(userId).map(userMapper::toModel);
+    }
+
     public User createUser(User user) {
         UserEntity userEntity = userMapper.toEntity(user);
         UserEntity savedUserEntity = userRepository.save(userEntity);
         return userMapper.toModel(savedUserEntity);
+    }
+
+    public User updateUser(User user) {
+        UserEntity userEntity = userMapper.toEntity(user);
+        UserEntity updatedUserEntity = userRepository.save(userEntity);
+        return userMapper.toModel(updatedUserEntity);
     }
 }

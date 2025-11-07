@@ -10,24 +10,21 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Schema(description = "Datos para mostrar infromación de un usuario")
+@Schema(description = "Datos para mostrar información de un usuario")
 public class UserResponseDTO {
 
-    @Schema(description = "Nombre", example = "Manuela Vélez Betancourt", required = true)
+    @Schema(description = "Nombre", example = "Sebastian", required = true)
     private String name;
 
-    @Schema(description = "Email", example = "manuela@gmail.com", required = true)
+    @Schema(description = "Apellido", example = "Cruz", required = true)
+    private String lastName;
+
+    @Schema(description = "Email", example = "sebascruz@email.com", required = true)
     private String email;
 
-    @Schema(description = "Password", example = "123456789", required = true)
-    private String password;
+    @Schema(description = "Pregunta de seguridad", example = "¿Cuál es tu comida favorita?", required = true)
+    private String securityQuestion;
 
-    @Schema(description = "Profession", example = "Bióloga", required = true)
-    private String profession;
-
-    @Schema(description = "question", example = "Nombre de su primera mascota?", required = true)
-    private String question;
-
-    @Schema(description = "answer", example = "Nicky", required = true)
-    private String answer;
+    @Schema(description = "Respuesta secreta", example = "Pizza", required = true)
+    private String secretAnswer;
 }

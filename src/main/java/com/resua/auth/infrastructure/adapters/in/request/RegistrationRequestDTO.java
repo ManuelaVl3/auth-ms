@@ -6,8 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
-
 @Getter
 @Setter
 @AllArgsConstructor
@@ -23,12 +21,6 @@ public class RegistrationRequestDTO {
 
     @Schema(description = "Email", example = "manuela@gmail.com", required = true)
     private String email;
-
-    @Schema(description = "Ocupación", example = "Biólogo", required = true)
-    private String profession;
-
-    @Schema(description = "Fecha de nacimiento", example = "2025-11-06", required = true)
-    private LocalDate birthDate;
 
     @Schema(description = "Password", example = "123456789", required = true)
     private String password;

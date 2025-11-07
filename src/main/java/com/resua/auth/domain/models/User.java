@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDate;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -15,11 +13,10 @@ import java.time.LocalDate;
 @Setter
 public class User {
 
+    private Long id;
     private String name;
     private String lastName;
     private String email;
-    private String profession;
-    private LocalDate birthDate;
     private String password;
     private String securityQuestion;
     private String secretAnswer;

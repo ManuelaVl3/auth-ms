@@ -19,8 +19,6 @@ public class CreateUserImpl implements CreateUser {
                 .name(userDTO.getName())
                 .lastName(userDTO.getLastName())
                 .email(userDTO.getEmail())
-                .profession(userDTO.getProfession())
-                .birthDate(userDTO.getBirthDate())
                 .password(userDTO.getPassword())
                 .securityQuestion(userDTO.getSecurityQuestion())
                 .secretAnswer(userDTO.getSecretAnswer())
