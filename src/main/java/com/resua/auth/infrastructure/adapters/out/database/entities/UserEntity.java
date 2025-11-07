@@ -20,7 +20,7 @@ public class UserEntity {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "name")
+    @Column(name = "name_")
     private String name;
 
     @Column(name = "last_name")
