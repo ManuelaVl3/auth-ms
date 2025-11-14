@@ -5,9 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.Data;
 
 @Getter
 @Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(description = "Respuesta de autenticación de usuario")
@@ -27,5 +29,7 @@ public class LoginResponseDTO {
 
     @Schema(description = "Indica si el login fue exitoso", example = "true")
     private boolean success;
+
+    private String token;
 }
 
