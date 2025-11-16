@@ -30,6 +30,7 @@ public class LoginResponseDTO {
     @Schema(description = "Indica si el login fue exitoso", example = "true")
     private boolean success;
 
+    @Schema(description = "JWT")
     private String token;
 }
 
