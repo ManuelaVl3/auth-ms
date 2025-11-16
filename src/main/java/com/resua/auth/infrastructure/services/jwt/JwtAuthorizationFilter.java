@@ -1,5 +1,6 @@
 package com.resua.auth.infrastructure.services.jwt;
 
+import com.resua.auth.application.usecases.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
