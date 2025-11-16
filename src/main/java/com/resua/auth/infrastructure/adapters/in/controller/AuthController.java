@@ -1,7 +1,6 @@
 package com.resua.auth.infrastructure.adapters.in.controller;
 
 import com.resua.auth.domain.models.User;
-import com.resua.auth.infrastructure.adapters.in.request.AuthRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.LoginRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.RegistrationRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.UpdateUserRequestDTO;
@@ -20,6 +19,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -103,27 +103,21 @@ public class AuthController {
             )
     })
    @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginRequest){
-        return loginUser.login(loginRequest)
-                .map(user -> {
-                    LoginResponseDTO response = new LoginResponseDTO(
-                            "Login exitoso",
-                            user.getId(),
-                            user.getName() + " " + user.getLastName(),
-                            user.getEmail(),
-                            true
-                    );
-                    return ResponseEntity.ok(response);
-                })
-                .orElse(ResponseEntity.status(401).body(
-                        new LoginResponseDTO(
+    public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest){
+        try {
+            LoginResponseDTO response = loginUser.login(loginRequest);
+            return ResponseEntity.ok(response);
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(401).body(
+                    new LoginResponseDTO(
                                 "Credenciales inválidas",
                                 null,
                                 null,
                                 null,
-                                false
-                        )
-                ));
+                                false,
+                                null
+                        ));
+        }
    }
 
     @Operation(
