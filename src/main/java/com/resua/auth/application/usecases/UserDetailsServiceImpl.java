@@ -1,4 +1,4 @@
-package com.resua.auth.infrastructure.services.jwt;
+package com.resua.auth.application.usecases;
 
 import com.resua.auth.infrastructure.adapters.out.database.entities.UserEntity;
 import com.resua.auth.infrastructure.ports.out.database.UserRepository;
