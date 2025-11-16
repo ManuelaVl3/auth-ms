@@ -55,9 +55,9 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(authz -> authz
 //              Si se quiere ver el swagger, descomentar las siguientes líneas
-                        .requestMatchers("/swagger-ui.html").permitAll()
-                        .requestMatchers("/swagger-ui/**").permitAll()
-                        .requestMatchers("/api-docs/**").permitAll()
+//                        .requestMatchers("/swagger-ui.html").permitAll()
+//                        .requestMatchers("/swagger-ui/**").permitAll()
+//                        .requestMatchers("/api-docs/**").permitAll()
                         .requestMatchers("/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/user").permitAll()
                 )
