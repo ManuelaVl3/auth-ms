@@ -55,13 +55,14 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(authz -> authz
 //              Si se quiere ver el swagger, descomentar las siguientes líneas
-                        .requestMatchers("/swagger-ui.html").permitAll()
-                        .requestMatchers("/swagger-ui/**").permitAll()
-                        .requestMatchers("/api-docs/**").permitAll()
+//                        .requestMatchers("/swagger-ui.html").permitAll()
+//                        .requestMatchers("/swagger-ui/**").permitAll()
+//                        .requestMatchers("/api-docs/**").permitAll()
+                        // Rutas permitidas sin autenticación (Sin token)
                         .requestMatchers(HttpMethod.GET, "/user/question").permitAll()
                         .requestMatchers(HttpMethod.POST, "/user/validate-answer").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/user/new-password").permitAll()
-                        .requestMatchers("/login").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/user").permitAll()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(
