@@ -1,16 +1,12 @@
 package com.resua.auth.infrastructure.adapters.in.controller;
 
 import com.resua.auth.domain.models.User;
-import com.resua.auth.infrastructure.adapters.in.request.LoginRequestDTO;
-import com.resua.auth.infrastructure.adapters.in.request.RegistrationRequestDTO;
-import com.resua.auth.infrastructure.adapters.in.request.UpdateUserRequestDTO;
+import com.resua.auth.infrastructure.adapters.in.request.*;
 import com.resua.auth.infrastructure.adapters.in.response.GenericResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.LoginResponseDTO;
+import com.resua.auth.infrastructure.adapters.in.response.SecurityQuestionResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.UserResponseDTO;
-import com.resua.auth.infrastructure.ports.in.CreateUser;
-import com.resua.auth.infrastructure.ports.in.GetUserById;
-import com.resua.auth.infrastructure.ports.in.LoginUser;
-import com.resua.auth.infrastructure.ports.in.UpdateUser;
+import com.resua.auth.infrastructure.ports.in.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Optional;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping
@@ -38,6 +36,9 @@ public class AuthController {
     private final CreateUser createUser;
     private final LoginUser loginUser;
     private final GetUserById getUserById;
+    private final GetSecurityQuestion getSecurityQuestion;
+    private final ValidateSecretAnswer validateSecretAnswer;
+    private final UpdatePassword updatePassword;
     private final UpdateUser updateUser;
 
     @Operation(
@@ -220,12 +221,12 @@ public class AuthController {
                     description = "Pregunta de seguridad obtenida exitosamente",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = GenericResponseDTO.class)
+                            schema = @Schema(implementation = SecurityQuestionResponseDTO.class)
                     )
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "ID de usuario inválido",
+                    description = "email de usuario inválido",
                     content = @Content
             ),
             @ApiResponse(
@@ -240,10 +241,103 @@ public class AuthController {
             )
     })
     @GetMapping("/user/question")
-    public ResponseEntity<GenericResponseDTO> getSecurityQuestion(@RequestParam("id") Long userId) {
-        GenericResponseDTO response = new GenericResponseDTO("¿Cuál es el nombre de tu mascota favorita?");
-        
-        return ResponseEntity.ok(response);
+    public ResponseEntity<SecurityQuestionResponseDTO> getSecurityQuestion(@RequestParam("email") String email) {
+        Optional<SecurityQuestionResponseDTO> response = getSecurityQuestion.getQuestion(email);
+        return response.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Operation(
+            summary = "Validar respuesta secreta",
+            description = "Compara la respuesta proporcionada por el usuario con" +
+                    " la almacenada en la DB para validar su identidad."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Respuesta secreta válida",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GenericResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Respuesta secreta incorrecta",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GenericResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Datos de entrada inválidos",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Error interno del servidor",
+                    content = @Content
+            )
+    })
+    @PostMapping("/user/validate-answer")
+    public ResponseEntity<GenericResponseDTO> validateSecretAnswer(@RequestBody SecretAnswerDTO secretAnswerDTO) {
+        boolean isValid = validateSecretAnswer.validate(secretAnswerDTO);
+
+        if (isValid) {
+            return ResponseEntity.ok(
+                    new GenericResponseDTO("Respuesta secreta validada correctamente. " +
+                            "Puede continuar con el cambio de contraseña.")
+            );
+        }
+        return ResponseEntity.status(401).body(
+                new GenericResponseDTO("Respuesta secreta incorrecta.")
+        );
+    }
+
+    @Operation(
+            summary = "Reestablecer contraseña",
+            description = "Guarda una nueva contraseña"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Nueva contraseña guardada correctamente",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GenericResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Usuario no encontrado",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GenericResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Datos de entrada inválidos",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Error interno del servidor",
+                    content = @Content
+            )
+    })
+    @PatchMapping("user/new-password")
+    public ResponseEntity<GenericResponseDTO> updatePassword(
+            @RequestBody UpdatePasswordRequestDTO updatePasswordRequestDTO) {
+        boolean isUpdated = updatePassword.updatePassword(updatePasswordRequestDTO);
+
+        if (isUpdated) {
+            return ResponseEntity.ok(
+                    new GenericResponseDTO("Nueva contraseña guardada correctamente")
+            );
+        }
+        return ResponseEntity.status(404).body(
+                new GenericResponseDTO("Usuario no encontrado")
+        );
+    }
 }
