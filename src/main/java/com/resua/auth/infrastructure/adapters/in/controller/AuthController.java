@@ -1,24 +1,13 @@
 package com.resua.auth.infrastructure.adapters.in.controller;
 
 import com.resua.auth.domain.models.User;
-import com.resua.auth.infrastructure.adapters.in.request.AuthRequestDTO;
-import com.resua.auth.infrastructure.adapters.in.request.LoginRequestDTO;
-import com.resua.auth.infrastructure.adapters.in.request.RegistrationRequestDTO;
-import com.resua.auth.infrastructure.adapters.in.request.ResetPasswordRequestDTO;
-import com.resua.auth.infrastructure.adapters.in.request.UpdateUserRequestDTO;
-import com.resua.auth.infrastructure.adapters.in.request.VerifyAnswerRequestDTO;
+import com.resua.auth.infrastructure.adapters.in.request.*;
 import com.resua.auth.infrastructure.adapters.in.response.GenericResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.LoginResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.SecurityQuestionResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.UserResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.VerifyAnswerResponseDTO;
-import com.resua.auth.infrastructure.ports.in.CreateUser;
-import com.resua.auth.infrastructure.ports.in.GetUserByEmail;
-import com.resua.auth.infrastructure.ports.in.GetUserById;
-import com.resua.auth.infrastructure.ports.in.LoginUser;
-import com.resua.auth.infrastructure.ports.in.ResetPassword;
-import com.resua.auth.infrastructure.ports.in.UpdateUser;
-import com.resua.auth.infrastructure.ports.in.VerifySecretAnswer;
+import com.resua.auth.infrastructure.ports.in.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -27,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -46,6 +38,9 @@ public class AuthController {
     private final LoginUser loginUser;
     private final GetUserById getUserById;
     private final GetUserByEmail getUserByEmail;
+    private final GetSecurityQuestion getSecurityQuestion;
+    private final ValidateSecretAnswer validateSecretAnswer;
+    private final UpdatePassword updatePassword;
     private final UpdateUser updateUser;
     private final VerifySecretAnswer verifySecretAnswer;
     private final ResetPassword resetPassword;
@@ -113,27 +108,21 @@ public class AuthController {
             )
     })
    @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginRequest){
-        return loginUser.login(loginRequest)
-                .map(user -> {
-                    LoginResponseDTO response = new LoginResponseDTO(
-                            "Login exitoso",
-                            user.getId(),
-                            user.getName() + " " + user.getLastName(),
-                            user.getEmail(),
-                            true
-                    );
-                    return ResponseEntity.ok(response);
-                })
-                .orElse(ResponseEntity.status(401).body(
-                        new LoginResponseDTO(
+    public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest){
+        try {
+            LoginResponseDTO response = loginUser.login(loginRequest);
+        return ResponseEntity.ok(response);
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(401).body(
+                    new LoginResponseDTO(
                                 "Credenciales inválidas",
                                 null,
                                 null,
                                 null,
-                                false
-                        )
-                ));
+                                false,
+                                null
+                        ));
+        }
    }
 
     @Operation(
@@ -257,6 +246,13 @@ public class AuthController {
     })
     @GetMapping("/user/question")
     public ResponseEntity<SecurityQuestionResponseDTO> getSecurityQuestionByEmail(@RequestParam("email") String email) {
+        // Intentar primero con el método del repositorio directo
+        Optional<SecurityQuestionResponseDTO> repoResponse = getSecurityQuestion.getQuestion(email);
+        if (repoResponse.isPresent()) {
+            return ResponseEntity.ok(repoResponse.get());
+        }
+        
+        // Si no funciona, usar el método alternativo
         return getUserByEmail.getUserByEmail(email)
                 .map(user -> {
                     SecurityQuestionResponseDTO response = new SecurityQuestionResponseDTO(
@@ -300,9 +296,56 @@ public class AuthController {
                 isValid ? "Respuesta correcta" : "Respuesta incorrecta",
                 isValid
         );
-        
+
         return ResponseEntity.ok(response);
-    }
+   }
+
+    @Operation(
+            summary = "Validar respuesta secreta",
+            description = "Compara la respuesta proporcionada por el usuario con la almacenada en la DB para validar su identidad."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Respuesta secreta válida",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GenericResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Respuesta secreta incorrecta",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GenericResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Datos de entrada inválidos",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Error interno del servidor",
+                    content = @Content
+            )
+    })
+    @PostMapping("/user/validate-answer")
+    public ResponseEntity<GenericResponseDTO> validateSecretAnswer(@RequestBody SecretAnswerDTO secretAnswerDTO) {
+        boolean isValid = validateSecretAnswer.validate(secretAnswerDTO);
+
+        if (isValid) {
+            return ResponseEntity.ok(
+                    new GenericResponseDTO("Respuesta secreta validada correctamente. " +
+                            "Puede continuar con el cambio de contraseña.")
+            );
+        }
+        return ResponseEntity.status(401).body(
+                new GenericResponseDTO("Respuesta secreta incorrecta.")
+        );
+   }
 
     @Operation(
             summary = "Restablecer contraseña",
@@ -340,11 +383,57 @@ public class AuthController {
                     GenericResponseDTO response = new GenericResponseDTO(
                             "Contraseña restablecida exitosamente"
                     );
-                    return ResponseEntity.ok(response);
+        return ResponseEntity.ok(response);
                 })
                 .orElse(ResponseEntity.badRequest().body(
                         new GenericResponseDTO("Error: Las contraseñas no coinciden o usuario no encontrado")
                 ));
     }
 
+    @Operation(
+            summary = "Reestablecer contraseña",
+            description = "Guarda una nueva contraseña"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Nueva contraseña guardada correctamente",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GenericResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Usuario no encontrado",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = GenericResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Datos de entrada inválidos",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Error interno del servidor",
+                    content = @Content
+            )
+    })
+    @PatchMapping("user/new-password")
+    public ResponseEntity<GenericResponseDTO> updatePassword(
+            @RequestBody UpdatePasswordRequestDTO updatePasswordRequestDTO) {
+        boolean isUpdated = updatePassword.updatePassword(updatePasswordRequestDTO);
+
+        if (isUpdated) {
+            return ResponseEntity.ok(
+                    new GenericResponseDTO("Nueva contraseña guardada correctamente")
+            );
+        }
+        return ResponseEntity.status(404).body(
+                new GenericResponseDTO("Usuario no encontrado")
+        );
+    }
 }

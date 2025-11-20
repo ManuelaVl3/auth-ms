@@ -1,5 +1,6 @@
 package com.resua.auth.infrastructure.ports.out.database;
 
+import com.resua.auth.infrastructure.adapters.in.response.SecurityQuestionResponseDTO;
 import com.resua.auth.infrastructure.adapters.out.database.entities.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,4 +18,11 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     Optional<UserEntity> findByEmail(String email);
 
+    Optional<UserEntity> findUserByEmail(String email);
+
+    @Query("SELECT NEW " +
+            "com.resua.auth.infrastructure.adapters.in.response.SecurityQuestionResponseDTO(u.id, u.securityQuestion) " +
+            "FROM UserEntity u " +
+            "WHERE u.email = :email")
+    Optional<SecurityQuestionResponseDTO> findSecurityQuestion(@Param("email") String email);
 }

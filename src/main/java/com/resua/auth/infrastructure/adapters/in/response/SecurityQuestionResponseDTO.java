@@ -19,4 +19,3 @@ public class SecurityQuestionResponseDTO {
     @Schema(description = "ID del usuario", example = "8", required = true)
     private Long userId;
 }
-
