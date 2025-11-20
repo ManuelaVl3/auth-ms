@@ -24,6 +24,7 @@ public class ResetPasswordImpl implements ResetPassword {
 
         return userAdapter.getUserById(resetRequest.getUserId())
                 .map(user -> {
+                    // La contraseña se hasheará en updateUser
                     user.setPassword(resetRequest.getNewPassword());
                     return userAdapter.updateUser(user);
                 });

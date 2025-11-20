@@ -38,8 +38,8 @@ public class LoginUserImpl implements LoginUser {
 
         String token = jwtService.generateToken(userDetails);
 
-        // Se hizo necesario este manejo para poder obtener los datos que se necesitan en el endpoint /login
-        Optional<User> user = userAdapter.getUserByCredentials(userDetails.getUsername(), userDetails.getPassword());
+        // Obtener los datos del usuario para la respuesta
+        Optional<User> user = userAdapter.getUserByEmail(loginRequest.getEmail());
 
         Long id = 0L;
         String name = "";

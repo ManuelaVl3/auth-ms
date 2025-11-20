@@ -60,10 +60,12 @@ public class SecurityConfig {
 //                        .requestMatchers("/api-docs/**").permitAll()
                         // Rutas permitidas sin autenticación (Sin token)
                         .requestMatchers(HttpMethod.GET, "/user/question").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/user/validate-answer").permitAll()
-                        .requestMatchers(HttpMethod.PATCH, "/user/new-password").permitAll()
-                        .requestMatchers(HttpMethod.POST,"/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/user/verify-answer").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/user/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/user").permitAll()
+                        // Todas las demás rutas requieren autenticación JWT
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(
                         SessionCreationPolicy.STATELESS)

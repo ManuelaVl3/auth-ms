@@ -1,9 +1,6 @@
 package com.resua.auth.infrastructure.adapters.out.database;
 
 import com.resua.auth.domain.models.User;
-import com.resua.auth.infrastructure.adapters.in.request.SecretAnswerDTO;
-import com.resua.auth.infrastructure.adapters.in.request.UpdatePasswordRequestDTO;
-import com.resua.auth.infrastructure.adapters.in.response.SecurityQuestionResponseDTO;
 import com.resua.auth.infrastructure.adapters.out.database.entities.UserEntity;
 import com.resua.auth.infrastructure.adapters.out.database.mappers.UserMapper;
 import com.resua.auth.infrastructure.ports.out.database.UserRepository;
@@ -19,10 +16,6 @@ public class UserAdapter {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
-
-    public Optional<User> getUserByCredentials(String email, String password) {
-        return userRepository.findUserByCredentials(email, password).map(userMapper::toModel);
-    }
 
     public Optional<User> getUserById(Long userId) {
         return userRepository.findById(userId).map(userMapper::toModel);
@@ -41,47 +34,21 @@ public class UserAdapter {
     }
 
     public User updateUser(User user) {
-        String hashedPassword = passwordEncoder.encode(user.getPassword());
-        user.setPassword(hashedPassword);
+        // SIEMPRE hashear la contraseña si no está hasheada (no empieza con $2)
+        if (user.getPassword() != null && !user.getPassword().startsWith("$2")) {
+            // La contraseña está en texto plano, hay que hashearla
+            String hashedPassword = passwordEncoder.encode(user.getPassword());
+            user.setPassword(hashedPassword);
+        } else if (user.getId() != null && user.getPassword() == null) {
+            // Si no se proporciona contraseña, mantener la existente
+            Optional<UserEntity> existingUser = userRepository.findById(user.getId());
+            if (existingUser.isPresent()) {
+                user.setPassword(existingUser.get().getPassword());
+            }
+        }
+        
         UserEntity userEntity = userMapper.toEntity(user);
         UserEntity updatedUserEntity = userRepository.save(userEntity);
         return userMapper.toModel(updatedUserEntity);
-    }
-
-    public Optional<SecurityQuestionResponseDTO> getQuestion(String email) {
-        return userRepository.findSecurityQuestion(email);
-    }
-
-    public boolean validateAnswer(SecretAnswerDTO secretAnswerDTO) {
-        Long id = secretAnswerDTO.getId();
-        Optional<UserEntity> optionalUserEntity = userRepository.findById(id);
-
-        if (optionalUserEntity.isEmpty()) {
-            return false;
-        }
-
-        UserEntity userEntity = optionalUserEntity.get();
-        String storedAnswer = userEntity.getSecretAnswer();
-
-        String providedAnswer = secretAnswerDTO.getSecretAnswer();
-
-        return storedAnswer.equals(providedAnswer);
-    }
-
-    public boolean updatePassword(UpdatePasswordRequestDTO updatePasswordRequestDTO) {
-        Long id = updatePasswordRequestDTO.getId();
-        Optional<UserEntity> optionalUserEntity = userRepository.findById(id);
-
-        if (optionalUserEntity.isEmpty()) {
-            return false;
-        }
-
-        String hashedPassword = passwordEncoder.encode(updatePasswordRequestDTO.getNewPassword());
-
-        UserEntity userEntity = optionalUserEntity.get();
-        userEntity.setPassword(hashedPassword);
-
-        userRepository.save(userEntity);
-        return true;
     }
 }

@@ -38,9 +38,6 @@ public class AuthController {
     private final LoginUser loginUser;
     private final GetUserById getUserById;
     private final GetUserByEmail getUserByEmail;
-    private final GetSecurityQuestion getSecurityQuestion;
-    private final ValidateSecretAnswer validateSecretAnswer;
-    private final UpdatePassword updatePassword;
     private final UpdateUser updateUser;
     private final VerifySecretAnswer verifySecretAnswer;
     private final ResetPassword resetPassword;
@@ -108,10 +105,10 @@ public class AuthController {
             )
     })
    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest){
+    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginRequest){
         try {
             LoginResponseDTO response = loginUser.login(loginRequest);
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
         } catch (AuthenticationException e) {
             return ResponseEntity.status(401).body(
                     new LoginResponseDTO(
@@ -246,13 +243,6 @@ public class AuthController {
     })
     @GetMapping("/user/question")
     public ResponseEntity<SecurityQuestionResponseDTO> getSecurityQuestionByEmail(@RequestParam("email") String email) {
-        // Intentar primero con el método del repositorio directo
-        Optional<SecurityQuestionResponseDTO> repoResponse = getSecurityQuestion.getQuestion(email);
-        if (repoResponse.isPresent()) {
-            return ResponseEntity.ok(repoResponse.get());
-        }
-        
-        // Si no funciona, usar el método alternativo
         return getUserByEmail.getUserByEmail(email)
                 .map(user -> {
                     SecurityQuestionResponseDTO response = new SecurityQuestionResponseDTO(
@@ -300,52 +290,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
    }
 
-    @Operation(
-            summary = "Validar respuesta secreta",
-            description = "Compara la respuesta proporcionada por el usuario con la almacenada en la DB para validar su identidad."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Respuesta secreta válida",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = GenericResponseDTO.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Respuesta secreta incorrecta",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = GenericResponseDTO.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Datos de entrada inválidos",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Error interno del servidor",
-                    content = @Content
-            )
-    })
-    @PostMapping("/user/validate-answer")
-    public ResponseEntity<GenericResponseDTO> validateSecretAnswer(@RequestBody SecretAnswerDTO secretAnswerDTO) {
-        boolean isValid = validateSecretAnswer.validate(secretAnswerDTO);
-
-        if (isValid) {
-            return ResponseEntity.ok(
-                    new GenericResponseDTO("Respuesta secreta validada correctamente. " +
-                            "Puede continuar con el cambio de contraseña.")
-            );
-        }
-        return ResponseEntity.status(401).body(
-                new GenericResponseDTO("Respuesta secreta incorrecta.")
-        );
-   }
 
     @Operation(
             summary = "Restablecer contraseña",
@@ -390,50 +334,4 @@ public class AuthController {
                 ));
     }
 
-    @Operation(
-            summary = "Reestablecer contraseña",
-            description = "Guarda una nueva contraseña"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Nueva contraseña guardada correctamente",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = GenericResponseDTO.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Usuario no encontrado",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = GenericResponseDTO.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Datos de entrada inválidos",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Error interno del servidor",
-                    content = @Content
-            )
-    })
-    @PatchMapping("user/new-password")
-    public ResponseEntity<GenericResponseDTO> updatePassword(
-            @RequestBody UpdatePasswordRequestDTO updatePasswordRequestDTO) {
-        boolean isUpdated = updatePassword.updatePassword(updatePasswordRequestDTO);
-
-        if (isUpdated) {
-            return ResponseEntity.ok(
-                    new GenericResponseDTO("Nueva contraseña guardada correctamente")
-            );
-        }
-        return ResponseEntity.status(404).body(
-                new GenericResponseDTO("Usuario no encontrado")
-        );
-    }
 }
