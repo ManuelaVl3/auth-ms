@@ -23,6 +23,10 @@ public class UserAdapter {
         return userRepository.findById(userId).map(userMapper::toModel);
     }
 
+    public Optional<User> getUserByEmail(String email) {
+        return userRepository.findByEmail(email).map(userMapper::toModel);
+    }
+
     public User createUser(User user) {
         UserEntity userEntity = userMapper.toEntity(user);
         UserEntity savedUserEntity = userRepository.save(userEntity);

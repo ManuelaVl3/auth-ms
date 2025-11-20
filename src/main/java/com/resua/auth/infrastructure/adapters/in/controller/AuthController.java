@@ -4,14 +4,21 @@ import com.resua.auth.domain.models.User;
 import com.resua.auth.infrastructure.adapters.in.request.AuthRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.LoginRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.RegistrationRequestDTO;
+import com.resua.auth.infrastructure.adapters.in.request.ResetPasswordRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.request.UpdateUserRequestDTO;
+import com.resua.auth.infrastructure.adapters.in.request.VerifyAnswerRequestDTO;
 import com.resua.auth.infrastructure.adapters.in.response.GenericResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.LoginResponseDTO;
+import com.resua.auth.infrastructure.adapters.in.response.SecurityQuestionResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.UserResponseDTO;
+import com.resua.auth.infrastructure.adapters.in.response.VerifyAnswerResponseDTO;
 import com.resua.auth.infrastructure.ports.in.CreateUser;
+import com.resua.auth.infrastructure.ports.in.GetUserByEmail;
 import com.resua.auth.infrastructure.ports.in.GetUserById;
 import com.resua.auth.infrastructure.ports.in.LoginUser;
+import com.resua.auth.infrastructure.ports.in.ResetPassword;
 import com.resua.auth.infrastructure.ports.in.UpdateUser;
+import com.resua.auth.infrastructure.ports.in.VerifySecretAnswer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -38,7 +45,10 @@ public class AuthController {
     private final CreateUser createUser;
     private final LoginUser loginUser;
     private final GetUserById getUserById;
+    private final GetUserByEmail getUserByEmail;
     private final UpdateUser updateUser;
+    private final VerifySecretAnswer verifySecretAnswer;
+    private final ResetPassword resetPassword;
 
     @Operation(
             summary = "Registrar nuevo usuario",
@@ -217,8 +227,8 @@ public class AuthController {
    }
 
     @Operation(
-            summary = "Obtener pregunta de seguridad",
-            description = "Obtiene la pregunta de seguridad de un usuario para recuperación de contraseña"
+            summary = "Obtener pregunta de seguridad por email",
+            description = "Obtiene la pregunta de seguridad de un usuario para recuperación de contraseña usando su email"
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -226,12 +236,90 @@ public class AuthController {
                     description = "Pregunta de seguridad obtenida exitosamente",
                     content = @Content(
                             mediaType = "application/json",
+                            schema = @Schema(implementation = SecurityQuestionResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Usuario no encontrado",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Email inválido",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Error interno del servidor",
+                    content = @Content
+            )
+    })
+    @GetMapping("/user/question")
+    public ResponseEntity<SecurityQuestionResponseDTO> getSecurityQuestionByEmail(@RequestParam("email") String email) {
+        return getUserByEmail.getUserByEmail(email)
+                .map(user -> {
+                    SecurityQuestionResponseDTO response = new SecurityQuestionResponseDTO(
+                            user.getSecurityQuestion(),
+                            user.getId()
+                    );
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(
+            summary = "Verificar respuesta secreta",
+            description = "Verifica si la respuesta secreta proporcionada por el usuario es correcta"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Respuesta verificada",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = VerifyAnswerResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Datos de entrada inválidos",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Error interno del servidor",
+                    content = @Content
+            )
+    })
+    @PostMapping("/user/verify-answer")
+    public ResponseEntity<VerifyAnswerResponseDTO> verifySecretAnswer(@RequestBody VerifyAnswerRequestDTO verifyRequest) {
+        boolean isValid = verifySecretAnswer.verifyAnswer(verifyRequest);
+        
+        VerifyAnswerResponseDTO response = new VerifyAnswerResponseDTO(
+                isValid ? "Respuesta correcta" : "Respuesta incorrecta",
+                isValid
+        );
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Restablecer contraseña",
+            description = "Restablece la contraseña del usuario después de verificar la respuesta secreta"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Contraseña restablecida exitosamente",
+                    content = @Content(
+                            mediaType = "application/json",
                             schema = @Schema(implementation = GenericResponseDTO.class)
                     )
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "ID de usuario inválido",
+                    description = "Las contraseñas no coinciden o datos inválidos",
                     content = @Content
             ),
             @ApiResponse(
@@ -245,11 +333,18 @@ public class AuthController {
                     content = @Content
             )
     })
-    @GetMapping("/user/question")
-    public ResponseEntity<GenericResponseDTO> getSecurityQuestion(@RequestParam("id") Long userId) {
-        GenericResponseDTO response = new GenericResponseDTO("¿Cuál es el nombre de tu mascota favorita?");
-        
-        return ResponseEntity.ok(response);
+    @PostMapping("/user/reset-password")
+    public ResponseEntity<GenericResponseDTO> resetPassword(@RequestBody ResetPasswordRequestDTO resetRequest) {
+        return resetPassword.resetPassword(resetRequest)
+                .map(user -> {
+                    GenericResponseDTO response = new GenericResponseDTO(
+                            "Contraseña restablecida exitosamente"
+                    );
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.badRequest().body(
+                        new GenericResponseDTO("Error: Las contraseñas no coinciden o usuario no encontrado")
+                ));
     }
 
 }
