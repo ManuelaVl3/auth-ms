@@ -17,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
@@ -26,6 +27,9 @@ public class SecurityConfig {
 
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
+
+    @Autowired
+    private CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -52,6 +56,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
 
                 .authorizeHttpRequests(authz -> authz
 //              Si se quiere ver el swagger, descomentar las siguientes líneas
@@ -60,6 +65,7 @@ public class SecurityConfig {
 //                        .requestMatchers("/api-docs/**").permitAll()
                         // Rutas permitidas sin autenticación (Sin token)
                         .requestMatchers(HttpMethod.GET, "/user/question").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/auth/validate").permitAll()
                         .requestMatchers(HttpMethod.POST, "/user/verify-answer").permitAll()
                         .requestMatchers(HttpMethod.POST, "/user/reset-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()

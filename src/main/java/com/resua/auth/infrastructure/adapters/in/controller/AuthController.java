@@ -6,8 +6,10 @@ import com.resua.auth.infrastructure.adapters.in.response.GenericResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.LoginResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.SecurityQuestionResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.UserResponseDTO;
+import com.resua.auth.infrastructure.adapters.in.response.ValidateTokenResponseDTO;
 import com.resua.auth.infrastructure.adapters.in.response.VerifyAnswerResponseDTO;
 import com.resua.auth.infrastructure.ports.in.*;
+import com.resua.auth.infrastructure.services.jwt.JwtService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,6 +44,7 @@ public class AuthController {
     private final UpdateUser updateUser;
     private final VerifySecretAnswer verifySecretAnswer;
     private final ResetPassword resetPassword;
+    private final JwtService jwtService;
 
     @Operation(
             summary = "Registrar nuevo usuario",
@@ -332,6 +336,95 @@ public class AuthController {
                 .orElse(ResponseEntity.badRequest().body(
                         new GenericResponseDTO("Error: Las contraseñas no coinciden o usuario no encontrado")
                 ));
+    }
+
+    @Operation(
+            summary = "Validar token JWT",
+            description = "Valida un token JWT y retorna el userId y email del usuario asociado"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Token válido",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ValidateTokenResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Token inválido o expirado",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ValidateTokenResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Token no proporcionado",
+                    content = @Content
+            )
+    })
+    @GetMapping("/auth/validate")
+    public ResponseEntity<ValidateTokenResponseDTO> validateToken(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(
+                    new ValidateTokenResponseDTO(
+                            null,
+                            null,
+                            false,
+                            "Token no proporcionado o formato inválido"
+                    )
+            );
+        }
+
+        try {
+            String token = authHeader.substring(7);
+            
+            // Validar que el token no esté expirado y sea válido
+            if (!jwtService.isTokenValid(token)) {
+                return ResponseEntity.status(401).body(
+                        new ValidateTokenResponseDTO(
+                                null,
+                                null,
+                                false,
+                                "Token inválido o expirado"
+                        )
+                );
+            }
+
+            String email = jwtService.extractUsername(token);
+            
+            return getUserByEmail.getUserByEmail(email)
+                    .map(user -> {
+                        ValidateTokenResponseDTO response = new ValidateTokenResponseDTO(
+                                user.getId(),
+                                user.getEmail(),
+                                true,
+                                "Token válido"
+                        );
+                        return ResponseEntity.ok(response);
+                    })
+                    .orElse(ResponseEntity.status(401).body(
+                            new ValidateTokenResponseDTO(
+                                    null,
+                                    email,
+                                    false,
+                                    "Usuario no encontrado"
+                            )
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(
+                    new ValidateTokenResponseDTO(
+                            null,
+                            null,
+                            false,
+                            "Error al validar el token: " + e.getMessage()
+                    )
+            );
+        }
     }
 
 }
